@@ -1,0 +1,11 @@
+{
+  "pythonVersion": "3.9",
+  "pythonPlatform": "Darwin",
+  "venvPath": ".",
+  "venv": "venv",
+  "executionEnvironments": [
+    {
+      "root": "app"
+    }
+  ]
+}

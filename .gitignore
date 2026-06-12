@@ -1,0 +1,33 @@
+# virtual environment
+venv
+/
+
+# python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+
+# environment variables
+.env
+.env.*
+
+# alembic (keep versions folder but ignore local db state)
+alembic/versions/*.pyc
+
+# database
+*.db
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# distribution / build
+dist/
+build/
+*.egg-info/

@@ -1,9 +1,7 @@
 from datetime import datetime
 from enum import Enum as PyEnum
 from typing import Optional
-
-from pydantic import BaseModel, EmailStr
-
+from pydantic import BaseModel, EmailStr, field_validator, Field
 
 class UserRole(str, PyEnum):
     organizer = "organizer"
@@ -43,6 +41,8 @@ class PaymentTxStatus(str, PyEnum):
 
 class BracketFormat(str, PyEnum):
     single_elimination = "single_elimination"
+    double_elimination = "double_elimination"
+    round_robin = "round_robin"
 
 
 class MatchStatus(str, PyEnum):
@@ -74,6 +74,11 @@ class NotificationType(str, PyEnum):
     announcement = "announcement"
     registration_reminder = "registration_reminder"
 
+class WeightType(str, PyEnum):
+    lbs = "lbs"
+    kg = "kg"
+
+
 
 # ---------------------------------------------------------------------------
 # Auth
@@ -94,16 +99,24 @@ class TokenData(BaseModel):
 
 class UserCreate(BaseModel):
     email: EmailStr
-    password: str
+    password: str = Field(min_length=6)
     first_name: str
     last_name: str
-    role: UserRole
+    roles: list[UserRole]
     phone: Optional[str] = None
+
+    @field_validator("password")
+    @classmethod
+    def password_within_bcrypt_limit(cls, v: str) -> str:
+        if len(v.encode("utf-8")) > 72:
+            raise ValueError("Password must be at most 72 bytes")
+        return v
 
 
 class UserUpdate(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
+    roles: Optional[list[UserRole]] = None
     phone: Optional[str] = None
 
 
@@ -112,7 +125,7 @@ class UserResponse(BaseModel):
     email: str
     first_name: str
     last_name: str
-    role: UserRole
+    roles: list[UserRole]
     phone: Optional[str] = None
     created_at: datetime
 
@@ -225,14 +238,19 @@ class TournamentResponse(BaseModel):
 
 class WeightClassCreate(BaseModel):
     name: str
-    max_weight_lbs: Optional[float] = None
+    max_weight: Optional[float] = None
+    min_weight: Optional[float] = None
+    weight_type: WeightType
     division: Optional[str] = None
 
 
 class WeightClassUpdate(BaseModel):
     name: Optional[str] = None
-    max_weight_lbs: Optional[float] = None
+    max_weight: Optional[float] = None
+    min_weight: Optional[float] = None
+    weight_type: Optional[WeightType] = None
     division: Optional[str] = None
+
 
 
 class WeightClassResponse(BaseModel):
@@ -315,8 +333,7 @@ class PaymentResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 class BracketCreate(BaseModel):
-    tournament_id: str
-    weight_class_id: str
+    published: bool = False
     format: BracketFormat = BracketFormat.single_elimination
 
 
@@ -337,8 +354,12 @@ class BracketResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 class MatchUpdate(BaseModel):
+    bracket_id:str
+    round_number: Optional[int] = None
+    match_number: Optional[int] = None
     mat_number: Optional[int] = None
-    scheduled_time: Optional[datetime] = None
+    athlete_a_id: Optional[str] = None
+    athlete_b_id: Optional[str] = None
 
 
 class MatchResultCreate(BaseModel):
@@ -347,6 +368,13 @@ class MatchResultCreate(BaseModel):
     score_b: int
     win_condition: WinCondition
 
+class MatchCreate(BaseModel):
+    bracket_id:str
+    round_number: int = 1
+    match_number: int
+    mat_number: Optional[int] = None
+    athlete_a_id: Optional[str] = None
+    athlete_b_id: Optional[str] = None
 
 class MatchResponse(BaseModel):
     id: str

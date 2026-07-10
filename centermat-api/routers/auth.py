@@ -1,17 +1,15 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
- 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from typing import Annotated
 import os
- 
 from database import db_dependency
 import models
 import schemas 
+import bcrypt
 
 
 SECRET_KEY = os.getenv("SECRET_KEY")
@@ -19,22 +17,26 @@ ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 60))
 
 
-pwd_context = CryptContext(schemes=['bcrypt'], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 def hash_password(password: str) -> str:
-    print(password)
-    return pwd_context.hash(password)
+    password_bytes = password.encode('utf-8')
+    salt = bcrypt.gensalt()
+    hashed_bytes = bcrypt.hashpw(password_bytes, salt)
+    return hashed_bytes.decode('utf-8')
  
  
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+        return bcrypt.checkpw(
+        plain.encode('utf-8'), 
+        hashed.encode('utf-8')
+    )
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM) 
 
@@ -47,6 +49,7 @@ def authenticate_user(db: Session, email:str, password:str) -> models.User | Non
     if not user or not verify_password(password, user.password_hash):
         return None
     return user
+
 
 
 async def get_current_user(
@@ -72,7 +75,16 @@ async def get_current_user(
     return user
  
  
-current_user_dependency = Annotated[models.User, Depends(get_current_user)]
+user_dependency = Annotated[models.User, Depends(get_current_user)]
+
+
+def checkValidUser(user: user_dependency):
+    if(user is None):
+        raise HTTPException(status_code=403, detail="Auth Failed")
+    
+def checkUserRoles(user: user_dependency, roles: list[models.UserRole], message: str):
+    if not any(r in user.roles for r in roles):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=message)
 
 
 @router.post("/register", response_model=schemas.UserResponse, status_code=status.HTTP_201_CREATED)
@@ -84,14 +96,15 @@ def register(data: schemas.UserCreate, db: db_dependency):
             detail="An account with this email already exists",
         )
  
+    print(data)
     user = models.User(
         email=data.email,
         password_hash=hash_password(data.password),
         first_name=data.first_name,
         last_name=data.last_name,
-        role=data.role,
         phone=data.phone,
     )
+    user.roles = data.roles
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -118,13 +131,13 @@ def login(
     return {"access_token": access_token, "token_type": "bearer"}
  
 @router.get("/user", response_model=schemas.UserResponse)
-def get_user(current_user: current_user_dependency):
+def get_user(current_user: user_dependency):
     return current_user
 
-@router.put("/user", response_model=schemas.UserResponse)
+@router.put("/user", response_model=schemas.UserResponse,status_code=status.HTTP_200_OK)
 def update_user(
     data: schemas.UserUpdate,
-    current_user: current_user_dependency,
+    current_user: user_dependency,
     db: db_dependency,
 ):
     for field, value in data.model_dump(exclude_unset=True).items():
@@ -132,3 +145,18 @@ def update_user(
     db.commit()
     db.refresh(current_user)
     return current_user
+
+
+@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_user(user_id: str, current_user: user_dependency, db: db_dependency):
+    checkValidUser(current_user)
+
+    if current_user.id != user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only delete your own account")
+
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    db.delete(user)
+    db.commit()

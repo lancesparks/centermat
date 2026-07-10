@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from decimal import Decimal
 from enum import Enum as PyEnum
 
 from sqlalchemy import (
@@ -13,8 +14,9 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.orm import  Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
+from sqlalchemy.ext.associationproxy import association_proxy, AssociationProxy
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -66,6 +68,8 @@ class PaymentTxStatus(PyEnum):
 
 class BracketFormat(PyEnum):
     single_elimination = "single_elimination"
+    double_elimination = "double_elimination"
+    round_robin = "round_robin"
 
 
 class MatchStatus(PyEnum):
@@ -89,6 +93,11 @@ class StaffRole(PyEnum):
     head_official = "head_official"
 
 
+class WeightType(PyEnum):
+    lbs = "lbs"
+    kg = "kg"
+
+
 class NotificationType(PyEnum):
     match_called = "match_called"
     match_result = "match_result"
@@ -108,11 +117,17 @@ class User(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=gen_uuid)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
-    role: Mapped[UserRole] = mapped_column(Enum(UserRole), nullable=False)
+    role_assignments: Mapped[list["UserRoleAssignment"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+    roles: AssociationProxy[list[UserRole]] = association_proxy(
+        "role_assignments", "role",
+        creator=lambda r: UserRoleAssignment(role=r),
+    )
     first_name: Mapped[str] = mapped_column(String(100), nullable=False)
     last_name: Mapped[str] = mapped_column(String(100), nullable=False)
     phone: Mapped[str | None] = mapped_column(String(20))
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.utc_timestamp())
 
     # relationships
     organized_tournaments: Mapped[list["Tournament"]] = relationship(back_populates="organizer")
@@ -127,13 +142,22 @@ class User(Base):
     fan_follows: Mapped[list["FanFollow"]] = relationship(back_populates="user")
 
 
+class UserRoleAssignment(Base):
+    __tablename__ = "user_roles"
+
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), primary_key=True)
+    role: Mapped[UserRole] = mapped_column(Enum(UserRole), primary_key=True, index=True)
+
+    user: Mapped["User"] = relationship(back_populates="role_assignments")
+
+
 class Team(Base):
     __tablename__ = "teams"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=gen_uuid)
     coach_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False)
     name: Mapped[str] = mapped_column(String(150), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.utc_timestamp())
 
     # relationships
     coach: Mapped["User"] = relationship(back_populates="coached_teams")
@@ -168,44 +192,66 @@ class Tournament(Base):
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     event_date: Mapped[datetime | None] = mapped_column(DateTime)
     location: Mapped[str | None] = mapped_column(String(300))
+    latitude: Mapped[float | None] = mapped_column(Numeric(9, 6))
+    longitude: Mapped[float | None] = mapped_column(Numeric(9, 6))
     registration_opens: Mapped[datetime | None] = mapped_column(DateTime)
     registration_closes: Mapped[datetime | None] = mapped_column(DateTime)
     status: Mapped[TournamentStatus] = mapped_column(
         Enum(TournamentStatus), default=TournamentStatus.draft, nullable=False
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.utc_timestamp())
 
     # relationships
     organizer: Mapped["User"] = relationship(back_populates="organized_tournaments")
-    weight_classes: Mapped[list["WeightClass"]] = relationship(back_populates="tournament")
-    registrations: Mapped[list["Registration"]] = relationship(back_populates="tournament")
-    brackets: Mapped[list["Bracket"]] = relationship(back_populates="tournament")
-    staff: Mapped[list["TournamentStaff"]] = relationship(back_populates="tournament")
-    fan_follows: Mapped[list["FanFollow"]] = relationship(back_populates="tournament")
-    notifications: Mapped[list["Notification"]] = relationship(back_populates="tournament")
+    weight_classes: Mapped[list["WeightClass"]] = relationship(
+        back_populates="tournament", cascade="all, delete-orphan", passive_deletes=True
+    )
+    registrations: Mapped[list["Registration"]] = relationship(
+        back_populates="tournament", cascade="all, delete-orphan", passive_deletes=True
+    )
+    brackets: Mapped[list["Bracket"]] = relationship(
+        back_populates="tournament", cascade="all, delete-orphan", passive_deletes=True
+    )
+    staff: Mapped[list["TournamentStaff"]] = relationship(
+        back_populates="tournament", cascade="all, delete-orphan", passive_deletes=True
+    )
+    fan_follows: Mapped[list["FanFollow"]] = relationship(
+        back_populates="tournament", cascade="all, delete-orphan", passive_deletes=True
+    )
+    notifications: Mapped[list["Notification"]] = relationship(
+        back_populates="tournament", cascade="all, delete-orphan", passive_deletes=True
+    )
 
 
 class WeightClass(Base):
     __tablename__ = "weight_classes"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=gen_uuid)
-    tournament_id: Mapped[str] = mapped_column(String(36), ForeignKey("tournaments.id"), nullable=False)
+    tournament_id: Mapped[str] = mapped_column(String(36), ForeignKey("tournaments.id", ondelete="CASCADE"), nullable=False)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
-    max_weight_lbs: Mapped[float | None] = mapped_column(Numeric(5, 1))
+    max_weight: Mapped[Decimal | None] = mapped_column(Numeric(5, 1))
+    min_weight: Mapped[Decimal | None] = mapped_column(Numeric(5, 1))
+    weight_type: Mapped[WeightType] = mapped_column(
+        Enum(WeightType), default=WeightType.lbs, nullable=False
+    )
     division: Mapped[str | None] = mapped_column(String(100))
 
     # relationships
     tournament: Mapped["Tournament"] = relationship(back_populates="weight_classes")
-    registrations: Mapped[list["Registration"]] = relationship(back_populates="weight_class")
+    # "all, delete" (NOT delete-orphan): Tournament is the orphan-owning parent of
+    # Registration. A second delete-orphan parent errors at mapper configuration.
+    registrations: Mapped[list["Registration"]] = relationship(
+        back_populates="weight_class", cascade="all, delete", passive_deletes=True
+    )
 
 
 class Registration(Base):
     __tablename__ = "registrations"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=gen_uuid)
-    tournament_id: Mapped[str] = mapped_column(String(36), ForeignKey("tournaments.id"), nullable=False)
+    tournament_id: Mapped[str] = mapped_column(String(36), ForeignKey("tournaments.id", ondelete="CASCADE"), nullable=False)
     athlete_profile_id: Mapped[str] = mapped_column(String(36), ForeignKey("athlete_profiles.id"), nullable=False)
-    weight_class_id: Mapped[str] = mapped_column(String(36), ForeignKey("weight_classes.id"), nullable=False)
+    weight_class_id: Mapped[str] = mapped_column(String(36), ForeignKey("weight_classes.id", ondelete="CASCADE"), nullable=False)
     registered_by: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.id"))
     status: Mapped[RegistrationStatus] = mapped_column(
         Enum(RegistrationStatus), default=RegistrationStatus.pending, nullable=False
@@ -215,7 +261,7 @@ class Registration(Base):
     )
     waiver_signed: Mapped[bool] = mapped_column(Boolean, default=False)
     waiver_signed_at: Mapped[datetime | None] = mapped_column(DateTime)
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.utc_timestamp())
 
     __table_args__ = (
         UniqueConstraint("tournament_id", "athlete_profile_id", name="uq_registration_athlete_tournament"),
@@ -225,7 +271,9 @@ class Registration(Base):
     tournament: Mapped["Tournament"] = relationship(back_populates="registrations")
     athlete_profile: Mapped["AthleteProfile"] = relationship(back_populates="registrations")
     weight_class: Mapped["WeightClass"] = relationship(back_populates="registrations")
-    payment: Mapped["Payment | None"] = relationship(back_populates="registration")
+    payment: Mapped["Payment | None"] = relationship(
+        back_populates="registration", cascade="all, delete-orphan", passive_deletes=True
+    )
 
 
 class Payment(Base):
@@ -233,9 +281,9 @@ class Payment(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=gen_uuid)
     registration_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("registrations.id"), unique=True, nullable=False
+        String(36), ForeignKey("registrations.id", ondelete="CASCADE"), unique=True, nullable=False
     )
-    amount: Mapped[float] = mapped_column(Numeric(8, 2), nullable=False)
+    amount: Mapped[Decimal] = mapped_column(Numeric(8, 2), nullable=False)
     status: Mapped[PaymentTxStatus] = mapped_column(
         Enum(PaymentTxStatus), default=PaymentTxStatus.pending, nullable=False
     )
@@ -250,8 +298,8 @@ class Bracket(Base):
     __tablename__ = "brackets"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=gen_uuid)
-    tournament_id: Mapped[str] = mapped_column(String(36), ForeignKey("tournaments.id"), nullable=False)
-    weight_class_id: Mapped[str] = mapped_column(String(36), ForeignKey("weight_classes.id"), nullable=False)
+    tournament_id: Mapped[str] = mapped_column(String(36), ForeignKey("tournaments.id", ondelete="CASCADE"), nullable=False)
+    weight_class_id: Mapped[str] = mapped_column(String(36), ForeignKey("weight_classes.id", ondelete="CASCADE"), nullable=False)
     format: Mapped[BracketFormat] = mapped_column(
         Enum(BracketFormat), default=BracketFormat.single_elimination, nullable=False
     )
@@ -260,14 +308,16 @@ class Bracket(Base):
 
     # relationships
     tournament: Mapped["Tournament"] = relationship(back_populates="brackets")
-    matches: Mapped[list["Match"]] = relationship(back_populates="bracket")
+    matches: Mapped[list["Match"]] = relationship(
+        back_populates="bracket", cascade="all, delete-orphan", passive_deletes=True
+    )
 
 
 class Match(Base):
     __tablename__ = "matches"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=gen_uuid)
-    bracket_id: Mapped[str] = mapped_column(String(36), ForeignKey("brackets.id"), nullable=False)
+    bracket_id: Mapped[str] = mapped_column(String(36), ForeignKey("brackets.id", ondelete="CASCADE"), nullable=False)
     round_number: Mapped[int] = mapped_column(Integer, nullable=False)
     match_number: Mapped[int] = mapped_column(Integer, nullable=False)
     athlete_a_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("athlete_profiles.id"))
@@ -285,15 +335,21 @@ class Match(Base):
     result_entered_by: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.id"))
     result_entered_at: Mapped[datetime | None] = mapped_column(DateTime)
 
+    __table_args__ = (
+        UniqueConstraint("bracket_id", "round_number", "match_number", name="uq_match_bracket_round_number"),
+    )
+
     # relationships
     bracket: Mapped["Bracket"] = relationship(back_populates="matches")
-    notifications: Mapped[list["Notification"]] = relationship(back_populates="match")
+    notifications: Mapped[list["Notification"]] = relationship(
+        back_populates="match", cascade="all, delete-orphan", passive_deletes=True
+    )
 
 
 class TournamentStaff(Base):
     __tablename__ = "tournament_staff"
 
-    tournament_id: Mapped[str] = mapped_column(String(36), ForeignKey("tournaments.id"), primary_key=True)
+    tournament_id: Mapped[str] = mapped_column(String(36), ForeignKey("tournaments.id", ondelete="CASCADE"), primary_key=True)
     user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), primary_key=True)
     role: Mapped[StaffRole] = mapped_column(Enum(StaffRole), nullable=False)
 
@@ -307,7 +363,7 @@ class FanFollow(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=gen_uuid)
     user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False)
-    tournament_id: Mapped[str] = mapped_column(String(36), ForeignKey("tournaments.id"), nullable=False)
+    tournament_id: Mapped[str] = mapped_column(String(36), ForeignKey("tournaments.id", ondelete="CASCADE"), nullable=False)
     athlete_profile_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("athlete_profiles.id"))
 
     __table_args__ = (
@@ -324,13 +380,13 @@ class Notification(Base):
     __tablename__ = "notifications"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=gen_uuid)
-    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False)
-    tournament_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("tournaments.id"))
-    match_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("matches.id"))
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    tournament_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("tournaments.id", ondelete="CASCADE"))
+    match_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("matches.id", ondelete="CASCADE"))
     type: Mapped[NotificationType] = mapped_column(Enum(NotificationType), nullable=False)
     body: Mapped[str] = mapped_column(String(500), nullable=False)
     read: Mapped[bool] = mapped_column(Boolean, default=False)
-    sent_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    sent_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.utc_timestamp())
 
     # relationships
     tournament: Mapped["Tournament | None"] = relationship(back_populates="notifications")

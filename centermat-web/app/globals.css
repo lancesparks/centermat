@@ -1,0 +1,105 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------ */
+/* Centermat Design System — 1950s collegiate / varsity              */
+/* Ink · Ivory · Gold                                                 */
+/* Tailwind v4: tokens below auto-generate utilities                  */
+/*   --color-ink       -> bg-ink / text-ink / border-ink              */
+/*   --color-gold      -> bg-gold / text-gold / ...                   */
+/*   --font-display    -> font-display                                */
+/* ------------------------------------------------------------------ */
+
+@theme {
+  --color-black: #0e0e0e; /* ---- Ivory / paper (backgrounds) ---- */
+  --color-ivory: #f4f2ed; /* primary light surface */
+  --color-ivory-deep: #eae6da; /* app background */
+  --color-paper: #fbfaf6; /* cards / inputs */
+  --color-ivory-line: #d9d3c2; /* hairline dividers */
+
+  /* ---- Ink (text / dark surfaces) ---- */
+  --color-ink: #0e0e0e; /* primary text, borders, dark buttons */
+  --color-ink-soft: #2a2a28; /* secondary dark */
+  --color-ink-mute: #6b6760; /* muted text, captions */
+
+  /* ---- Accents ---- */
+  --color-gold: #c4a035; /* primary accent */
+  --color-gold-deep: #8e7421; /* gold hover/pressed */
+  --color-midnight: #142740; /* deep blue accent */
+  --color-crimson: #a8351f; /* error / live / danger */
+  --color-green-flag: #2c6e3f; /* success / go */
+
+  /* ---- Fonts ---- */
+  --font-sans:
+    "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif; /* body */
+  --font-serif: "DM Serif Display", Georgia, serif; /* italic quotes */
+  --font-mono: "JetBrains Mono", ui-monospace, monospace; /* numerals, IDs */
+  --font-display: var(--font-big-shoulders), sans-serif;
+}
+
+/* ------------------------------------------------------------------ */
+/* Fonts — loaded from Google Fonts. (Alternatively use next/font.)   */
+/* ------------------------------------------------------------------ */
+
+/* ------------------------------------------------------------------ */
+/* Base defaults — app background + default body type                 */
+/* ------------------------------------------------------------------ */
+@layer base {
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    background: var(--color-ivory-deep);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Tabular numerals for IDs, weights, times (mono spec) */
+  .tabular {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Optional component primitives — the varsity "rules" (divider bars) */
+/* Use as utility classes: <div class="cm-rule" /> etc.               */
+/* You can also just build these as React components in components/ui */
+/* ------------------------------------------------------------------ */
+@layer components {
+  .cm-rule {
+    height: 6px;
+    background: var(--color-ink);
+  }
+  .cm-rule-thin {
+    height: 2px;
+    background: var(--color-ink);
+  }
+  .cm-rule-gold {
+    height: 6px;
+    background: var(--color-gold);
+  }
+
+  /* Eyebrow label — 10px / 800 / .18em uppercase */
+  .cm-eyebrow {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-ink-mute);
+  }
+
+  /* Field label — 11px / 800 / .12em uppercase */
+  .cm-label {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-ink);
+  }
+}

@@ -116,6 +116,7 @@ class User(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=gen_uuid)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    date_of_birth: Mapped[datetime | None] = mapped_column(DateTime)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     role_assignments: Mapped[list["UserRoleAssignment"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"

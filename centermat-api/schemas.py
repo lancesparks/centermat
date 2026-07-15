@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from enum import Enum as PyEnum
 from typing import Optional
 from pydantic import BaseModel, EmailStr, field_validator, Field
@@ -102,14 +102,27 @@ class UserCreate(BaseModel):
     password: str = Field(min_length=6)
     first_name: str
     last_name: str
+    date_of_birth: date
     roles: list[UserRole]
     phone: Optional[str] = None
+    @field_validator("date_of_birth")
+    @classmethod
+    def dob_must_be_valid(cls, v: date) -> date:
+        today = date.today()
+        if v > today:
+            raise ValueError("Date of birth cannot be in the future.")
+        age = today.year - v.year - ((today.month, today.day) < (v.month, v.day))
+        if age > 99:
+            raise ValueError("Date of birth is not valid.")
+        if age < 13:
+            raise ValueError("You must be at least 13 to create an account.")
+        return v
 
     @field_validator("password")
     @classmethod
     def password_within_bcrypt_limit(cls, v: str) -> str:
         if len(v.encode("utf-8")) > 72:
-            raise ValueError("Password must be at most 72 bytes")
+            raise ValueError("Password is too long.")
         return v
 
 

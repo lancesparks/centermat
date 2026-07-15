@@ -1,5 +1,3 @@
-import { useState } from "react";
-
 const buttonClasses = {
   ink: "bg-ink text-ivory hover:bg-ink-soft active:bg-ink",
   gold: "bg-gold text-black hover:bg-gold-deep border-2 border-ink active:bg-gold",

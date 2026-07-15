@@ -1,10 +1,5 @@
-"use client";
+import CreateUserPage from "./create-user";
 
-export default function CreatePage() {
-  return (
-    <>
-      {" "}
-      <p>hello</p>
-    </>
-  );
+export default function Page() {
+  return <CreateUserPage />;
 }

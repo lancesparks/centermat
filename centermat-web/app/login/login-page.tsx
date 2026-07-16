@@ -1,6 +1,9 @@
 "use client";
 
+import { useForm } from "@tanstack/react-form";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { login } from "../actions/api";
 import LoginLayout from "../ui/LoginLayout";
 import Image from "next/image";
 import Link from "next/link";
@@ -9,8 +12,26 @@ import Input from "../ui/Input";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
-  const [userName, setUserName] = useState("");
-  const [password, setPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
+
+  const router = useRouter();
+  const form = useForm({
+    defaultValues: {
+      userName: "",
+      password: ""
+    },
+    onSubmit: async ({ value, formApi }) => {
+      const { userName, password } = value;
+      login(userName, password)
+        .then((data: any) => {
+          localStorage.setItem("token", data.access_token);
+          // router.push("/tournaments");
+        })
+        .catch((err) => {
+          setLoginError(err.message);
+        });
+    }
+  });
 
   return (
     <LoginLayout
@@ -45,17 +66,38 @@ export default function LoginPage() {
       {/* form */}
       <form
         className="mt-8 flex flex-col gap-5"
-        onSubmit={(e) => e.preventDefault()}
+        onSubmit={(e) => {
+          setLoginError("");
+          e.preventDefault();
+          e.stopPropagation();
+          form.handleSubmit();
+        }}
       >
         {/* email */}
         <div>
-          <Input
-            label="email"
-            type="email"
-            placeholder="you@example.com"
-            value={userName}
-            onChange={setUserName}
-          ></Input>
+          <form.Field
+            name="userName"
+            validators={{
+              onSubmit: ({ value }) => (!value ? "Username is required." : null)
+            }}
+          >
+            {(field) => (
+              <div>
+                <Input
+                  label="username"
+                  type="text"
+                  placeholder="you@example.com"
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e)}
+                />
+                {field.state.meta.errors.length > 0 && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {field.state.meta.errors.join(", ")}
+                  </p>
+                )}
+              </div>
+            )}
+          </form.Field>
         </div>
 
         {/* password */}
@@ -69,25 +111,46 @@ export default function LoginPage() {
             </Link>
           </div>
           <div className="relative">
-            <input
-              id="password"
-              type={showPassword ? "text" : "password"}
-              placeholder="••••••••"
-              className="w-full bg-paper border-2 border-ink px-4 py-3.5 pr-16 text-base placeholder:text-ink-mute focus:outline-none focus:border-gold"
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="cm-eyebrow absolute right-4 top-1/2 -translate-y-1/2 hover:text-ink cursor-pointer"
+            <form.Field
+              name="password"
+              validators={{
+                onSubmit: ({ value }) =>
+                  !value ? "Password is required." : null
+              }}
             >
-              {showPassword ? "Hide" : "Show"}
-            </button>
+              {(field) => (
+                <div>
+                  <input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    className="w-full bg-paper border-2 border-ink px-4 py-3.5 pr-16 text-base placeholder:text-ink-mute focus:outline-none focus:border-gold"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="cm-eyebrow absolute right-4 top-1/2 -translate-y-1/2 hover:text-ink cursor-pointer"
+                  >
+                    {showPassword ? "Hide" : "Show"}
+                  </button>
+                  {field.state.meta.errors.length > 0 && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {field.state.meta.errors.join(", ")}
+                    </p>
+                  )}
+                  {loginError.length > 0 && (
+                    <p className="text-red-500 text-sm mt-1">{loginError}</p>
+                  )}
+                </div>
+              )}
+            </form.Field>
           </div>
         </div>
 
         {/* sign in */}
-        <Button variant="ink" onClick={() => console.log("hello")}>
+        <Button variant="ink" type="submit">
           Sign In
         </Button>
       </form>
@@ -98,7 +161,7 @@ export default function LoginPage() {
           New to Centermat?
           <Link
             href="/create-user"
-            className="font-bold underline underline-offset-4 cursor-pointe ml-1"
+            className="font-bold underline underline-offset-4 ml-1"
           >
             Create account
           </Link>

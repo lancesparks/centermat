@@ -92,19 +92,25 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     user_id: Optional[str] = None
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr  # Automatically validates that the string is a valid email structure
+
+class ResetPasswordSubmit(BaseModel):
+    token: str
+    new_password: str = Field(..., min_length=8)
 
 # ---------------------------------------------------------------------------
 # User
 # ---------------------------------------------------------------------------
 
 class UserCreate(BaseModel):
-    email: EmailStr
-    password: str = Field(min_length=6)
     first_name: str
     last_name: str
     date_of_birth: date
-    roles: list[UserRole]
+    email: EmailStr
     phone: Optional[str] = None
+    roles: list[UserRole]
+    password: str = Field(min_length=6)
     @field_validator("date_of_birth")
     @classmethod
     def dob_must_be_valid(cls, v: date) -> date:

@@ -1,8 +1,8 @@
 """initial schema
 
-Revision ID: 70abf5109806
+Revision ID: 8dc58ee00b5b
 Revises: 
-Create Date: 2026-07-15 11:14:44.834819
+Create Date: 2026-07-16 11:47:07.087966
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '70abf5109806'
+revision: str = '8dc58ee00b5b'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -33,6 +33,16 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('email')
     )
+    op.create_table('password_reset_tokens',
+    sa.Column('id', sa.String(length=36), nullable=False),
+    sa.Column('user_id', sa.String(length=36), nullable=True),
+    sa.Column('token', sa.String(length=255), nullable=False),
+    sa.Column('expires_at', sa.DateTime(), nullable=False),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('user_id')
+    )
+    op.create_index(op.f('ix_password_reset_tokens_token'), 'password_reset_tokens', ['token'], unique=True)
     op.create_table('teams',
     sa.Column('id', sa.String(length=36), nullable=False),
     sa.Column('coach_id', sa.String(length=36), nullable=False),
@@ -205,5 +215,7 @@ def downgrade() -> None:
     op.drop_table('user_roles')
     op.drop_table('tournaments')
     op.drop_table('teams')
+    op.drop_index(op.f('ix_password_reset_tokens_token'), table_name='password_reset_tokens')
+    op.drop_table('password_reset_tokens')
     op.drop_table('users')
     # ### end Alembic commands ###

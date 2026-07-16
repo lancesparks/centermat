@@ -4,6 +4,7 @@ from decimal import Decimal
 from enum import Enum as PyEnum
 
 from sqlalchemy import (
+    Column,
     Boolean,
     DateTime,
     Enum,
@@ -142,6 +143,16 @@ class User(Base):
     staff_assignments: Mapped[list["TournamentStaff"]] = relationship(back_populates="user")
     fan_follows: Mapped[list["FanFollow"]] = relationship(back_populates="user")
 
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=gen_uuid)
+    user_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.id"), unique=True)
+
+    # Update this line to specify a string length (e.g., 255)
+    token = Column(String(255), unique=True, index=True, nullable=False)
+
+    expires_at = Column(DateTime, nullable=False)
 
 class UserRoleAssignment(Base):
     __tablename__ = "user_roles"

@@ -6,7 +6,7 @@ const buttonClasses = {
   outline:
     "bg-ivory text-ink hover:brightness-105 active:brightness-100 border-2 border-ink"
 };
-interface ButtonProps {
+interface ButtonProps extends React.ComponentPropsWithoutRef<"button"> {
   variant: keyof typeof buttonClasses;
   type?: React.ButtonHTMLAttributes<HTMLButtonElement>["type"];
   onClick?: () => void;
@@ -17,12 +17,14 @@ export default function Button({
   variant,
   type,
   onClick,
+  disabled,
   children
 }: ButtonProps) {
   return (
     <>
       <button
         type={type}
+        disabled={disabled}
         onClick={onClick}
         className={`w-full ${buttonClasses[variant]} font-display font-extrabold uppercase tracking-[0.12em] text-sm py-4 mt-2  transition-colors cursor-pointer `}
       >

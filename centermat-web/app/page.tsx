@@ -6,7 +6,7 @@ export default function Home() {
   const router = useRouter();
   useEffect(() => {
     const token = localStorage.getItem("token");
-    router.replace(token ? "/tournaments" : "/login");
+    router.replace(token ? "/dashboard" : "/login");
   }, [router]);
   return null;
 }

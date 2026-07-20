@@ -2,6 +2,7 @@ import "./globals.css";
 
 import localFont from "next/font/local";
 import { DM_Sans } from "next/font/google";
+import QueryProvider from "../providers/QueryProvider"; // Adjust path
 
 const bigShoulders = localFont({
   src: [
@@ -25,7 +26,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${bigShoulders.variable} ${sans.variable}`}>
-      <body>{children}</body>
+      <body>
+        <QueryProvider>{children}</QueryProvider>
+      </body>
     </html>
   );
 }

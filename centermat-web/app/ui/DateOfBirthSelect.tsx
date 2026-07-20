@@ -10,7 +10,7 @@ import {
   PopoverContent,
   PopoverTrigger
 } from "@/components/ui/popover";
-import { getDateString } from "../helpers/date-helper";
+import { getDateString } from "../../helpers/date-helper";
 
 interface DateOfBirthProps {
   onChange: (value: string) => void;

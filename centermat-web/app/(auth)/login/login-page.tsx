@@ -3,12 +3,12 @@
 import { useForm } from "@tanstack/react-form";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { login, getCurrentUser } from "../actions/api";
-import LoginLayout from "../ui/LoginLayout";
+import { login, getCurrentUser } from "../../../actions/api";
+import LoginLayout from "../../ui/LoginLayout";
 import Image from "next/image";
 import Link from "next/link";
-import Button from "../ui/Button";
-import Input from "../ui/Input";
+import Button from "../../ui/Button";
+import Input from "../../ui/Input";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -32,9 +32,12 @@ export default function LoginPage() {
         }
         const user = await getCurrentUser();
 
+        console.log(user);
+
         if (!user) {
           //finish this
         } else {
+          router.push("/dashboard");
         }
       } catch (err: any) {
         setLoginError(err.message);

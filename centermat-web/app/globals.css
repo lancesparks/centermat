@@ -94,6 +94,10 @@
     background: var(--color-gold);
   }
 
+  .cm-rule-b {
+    border-bottom: 6px solid var(--color-ink);
+  }
+
   /* Eyebrow label — 10px / 800 / .18em uppercase */
   .cm-eyebrow {
     font-family: var(--font-display);

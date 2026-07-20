@@ -1,12 +1,12 @@
 "use client";
 import { useForm } from "@tanstack/react-form";
 import { useState } from "react";
-import { forgotPassword } from "../actions/api";
-import LoginLayout from "../ui/LoginLayout";
+import { forgotPassword } from "../../../actions/api";
+import LoginLayout from "../../ui/LoginLayout";
 import Image from "next/image";
 import Link from "next/link";
-import Button from "../ui/Button";
-import Input from "../ui/Input";
+import Button from "../../ui/Button";
+import Input from "../../ui/Input";
 
 export default function ForgotPasswordPage() {
   const [message, setMessage] = useState("");

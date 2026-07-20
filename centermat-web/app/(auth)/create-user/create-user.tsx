@@ -1,14 +1,14 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useForm } from "@tanstack/react-form";
-import LoginLayout from "../ui/LoginLayout";
+import LoginLayout from "../../ui/LoginLayout";
 import Image from "next/image";
 import Link from "next/link";
-import Button from "../ui/Button";
-import Input from "../ui/Input";
-import Dropdown from "../ui/Dropdown";
-import { DateOfBirthSelect } from "../ui/DateOfBirthSelect";
-import { registerUser } from "../actions/api";
+import Button from "../../ui/Button";
+import Input from "../../ui/Input";
+import Dropdown from "../../ui/Dropdown";
+import { DateOfBirthSelect } from "../../ui/DateOfBirthSelect";
+import { registerUser } from "../../../actions/api";
 import { useState } from "react";
 
 const ROLES = [

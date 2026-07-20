@@ -9,6 +9,7 @@ import Input from "../ui/Input";
 import Dropdown from "../ui/Dropdown";
 import { DateOfBirthSelect } from "../ui/DateOfBirthSelect";
 import { registerUser } from "../actions/api";
+import { useState } from "react";
 
 const ROLES = [
   { label: "Organizer", value: "organizer" },
@@ -20,6 +21,7 @@ const ROLES = [
 
 export default function CreateUserPage() {
   const router = useRouter();
+  const [createError, setCreateError] = useState("");
 
   function handleSetPhoneNumber(value: string) {
     const digits = value.replace(/\D/g, "").slice(0, 10);
@@ -44,20 +46,15 @@ export default function CreateUserPage() {
       confirmPassword: ""
     },
     onSubmit: async ({ value, formApi }) => {
-      // 1. Strip the UI-only fields (like confirmPassword)
       const { confirmPassword, ...submissionData } = value;
 
-      // 2. Call the Server Action
       const result = await registerUser(submissionData);
-      console.log(result);
 
       if (result.success) {
-        // Clear the form and redirect
         formApi.reset();
         router.push("/login");
       } else {
-        // Set a form-level error or display a toast
-        alert(result.error); // Replace with a clean toast or error block
+        setCreateError(result.error);
       }
     }
   });
@@ -81,6 +78,9 @@ export default function CreateUserPage() {
         <h1 className="font-display font-black uppercase text-4xl leading-[0.95] mt-2 lg:text-3xl">
           GET STARTED
         </h1>
+        {createError.length > 0 && (
+          <p className="text-red-500 text-sm mt-1">{createError}</p>
+        )}
       </header>
 
       {/* heavy rule — mobile only */}
@@ -320,6 +320,7 @@ export default function CreateUserPage() {
         </div>
 
         {/* Access the form-level pending state */}
+
         <form.Subscribe
           selector={(state) => [state.isSubmitting, state.canSubmit]}
         >

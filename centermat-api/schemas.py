@@ -86,11 +86,15 @@ class WeightType(str, PyEnum):
 
 class Token(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str
 
 
 class TokenData(BaseModel):
     user_id: Optional[str] = None
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
 
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr  # Automatically validates that the string is a valid email structure
@@ -144,6 +148,7 @@ class UserResponse(BaseModel):
     email: str
     first_name: str
     last_name: str
+    date_of_birth: date
     roles: list[UserRole]
     phone: Optional[str] = None
     created_at: datetime

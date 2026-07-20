@@ -1,8 +1,8 @@
 """initial schema
 
-Revision ID: 8dc58ee00b5b
+Revision ID: 8dc5796dced7
 Revises: 
-Create Date: 2026-07-16 11:47:07.087966
+Create Date: 2026-07-20 12:01:44.123825
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '8dc58ee00b5b'
+revision: str = '8dc5796dced7'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -43,6 +43,17 @@ def upgrade() -> None:
     sa.UniqueConstraint('user_id')
     )
     op.create_index(op.f('ix_password_reset_tokens_token'), 'password_reset_tokens', ['token'], unique=True)
+    op.create_table('refresh_tokens',
+    sa.Column('id', sa.String(length=36), nullable=False),
+    sa.Column('user_id', sa.String(length=36), nullable=False),
+    sa.Column('token_hash', sa.String(length=64), nullable=False),
+    sa.Column('expires_at', sa.DateTime(), nullable=False),
+    sa.Column('revoked', sa.Boolean(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), server_default=sa.text('utc_timestamp()'), nullable=False),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_refresh_tokens_token_hash'), 'refresh_tokens', ['token_hash'], unique=True)
     op.create_table('teams',
     sa.Column('id', sa.String(length=36), nullable=False),
     sa.Column('coach_id', sa.String(length=36), nullable=False),
@@ -69,7 +80,7 @@ def upgrade() -> None:
     op.create_table('user_roles',
     sa.Column('user_id', sa.String(length=36), nullable=False),
     sa.Column('role', sa.Enum('organizer', 'athlete', 'coach', 'event_staff', 'fan', name='userrole'), nullable=False),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('user_id', 'role')
     )
     op.create_index(op.f('ix_user_roles_role'), 'user_roles', ['role'], unique=False)
@@ -215,6 +226,8 @@ def downgrade() -> None:
     op.drop_table('user_roles')
     op.drop_table('tournaments')
     op.drop_table('teams')
+    op.drop_index(op.f('ix_refresh_tokens_token_hash'), table_name='refresh_tokens')
+    op.drop_table('refresh_tokens')
     op.drop_index(op.f('ix_password_reset_tokens_token'), table_name='password_reset_tokens')
     op.drop_table('password_reset_tokens')
     op.drop_table('users')

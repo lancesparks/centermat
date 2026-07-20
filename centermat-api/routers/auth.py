@@ -11,10 +11,12 @@ from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 from utils import send_reset_password_email
 from database import db_dependency
+import hashlib
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 60))
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 15))
+REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", 1))
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
@@ -26,6 +28,11 @@ def hash_password(password: str) -> str:
     salt = bcrypt.gensalt()
     hashed_bytes = bcrypt.hashpw(password_bytes, salt)
     return hashed_bytes.decode('utf-8')
+
+def hash_token(raw_token: str) -> str:
+    """SHA-256 hex digest — what we store in the DB, never the raw token."""
+    return hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+
  
 def verify_password(plain: str, hashed: str) -> bool:
     return bcrypt.checkpw(
@@ -33,13 +40,53 @@ def verify_password(plain: str, hashed: str) -> bool:
         hashed.encode('utf-8')
     )
 
-# --- JWT Token Generation & Verification ---
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-    # Standard security practice: payload "sub" should represent user id as a string
     to_encode.update({"exp": expire, "sub": str(data.get("sub"))})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM) 
+
+def create_refresh_token(db: Session, user_id: str) -> str:
+    raw_token = secrets.token_urlsafe(48)
+    expires_at = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(
+        days=REFRESH_TOKEN_EXPIRE_DAYS
+    )
+
+    db_token = models.RefreshToken(
+        user_id=user_id,
+        token_hash=hash_token(raw_token),
+        expires_at=expires_at,
+    )
+    db.add(db_token)
+    db.commit()
+    return raw_token
+
+
+def get_valid_refresh_token(db: Session, raw_token: str) -> models.RefreshToken | None:
+    """Look up a refresh token by hash; return it only if not revoked and not expired."""
+    db_token = (
+        db.query(models.RefreshToken)
+        .filter(models.RefreshToken.token_hash == hash_token(raw_token))
+        .first()
+    )
+    if db_token is None or db_token.revoked:
+        return None
+    if db_token.expires_at < datetime.now(timezone.utc).replace(tzinfo=None):
+        return None
+    return db_token
+
+def revoke_refresh_token(db: Session, db_token: models.RefreshToken) -> None:
+    db_token.revoked = True
+    db.commit()
+
+
+def revoke_all_user_tokens(db: Session, user_id: str) -> None:
+    db.query(models.RefreshToken).filter(
+        models.RefreshToken.user_id == user_id,
+        models.RefreshToken.revoked == False,  # noqa: E712
+    ).update({"revoked": True})
+    db.commit()
+
 
 def get_user_by_email(db: Session, email: str) -> models.User | None:
     return db.query(models.User).filter(models.User.email == email).first()
@@ -104,8 +151,10 @@ def register(data: schemas.UserCreate, db: db_dependency):
         password_hash=hash_password(data.password),
         first_name=data.first_name,
         last_name=data.last_name,
+        date_of_birth=data.date_of_birth,
         phone=data.phone,
     )
+    
     user.roles = data.roles
     db.add(user)
     db.commit()
@@ -129,7 +178,41 @@ def login(
         data={"sub": user.id},
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+
+    refresh_token = create_refresh_token(db, user.id)
+
+    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
+
+@router.post("/refresh", response_model=schemas.Token)
+def refresh(payload: schemas.RefreshRequest, db: db_dependency):
+    db_token = get_valid_refresh_token(db, payload.refresh_token)
+    if db_token is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token",
+        )
+
+    user = db.query(models.User).filter(models.User.id == db_token.user_id).first()
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token",
+        )
+
+    # rotation: burn the old token, mint a new one
+    revoke_refresh_token(db, db_token)
+    new_refresh_token = create_refresh_token(db, user.id)
+
+    access_token = create_access_token(
+        data={"sub": user.id},
+        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+    )
+
+    return {
+        "access_token": access_token,
+        "refresh_token": new_refresh_token,
+        "token_type": "bearer",
+    }
 
 
 # 1. Body(..., embed=True) or Pydantic schemas allow Next.js to pass JSON natively
@@ -231,3 +314,10 @@ def delete_user(user_id: str, current_user: user_dependency, db: db_dependency):
 
     db.delete(user)
     db.commit()
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(payload: schemas.RefreshRequest, db: db_dependency):
+    db_token = get_valid_refresh_token(db, payload.refresh_token)
+    if db_token is not None:
+        revoke_refresh_token(db, db_token)

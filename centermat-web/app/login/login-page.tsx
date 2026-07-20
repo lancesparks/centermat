@@ -3,7 +3,7 @@
 import { useForm } from "@tanstack/react-form";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { login } from "../actions/api";
+import { login, getCurrentUser } from "../actions/api";
 import LoginLayout from "../ui/LoginLayout";
 import Image from "next/image";
 import Link from "next/link";
@@ -22,14 +22,23 @@ export default function LoginPage() {
     },
     onSubmit: async ({ value, formApi }) => {
       const { userName, password } = value;
-      login(userName, password)
-        .then((data: any) => {
-          localStorage.setItem("token", data.access_token);
-          // router.push("/tournaments");
-        })
-        .catch((err) => {
-          setLoginError(err.message);
-        });
+
+      try {
+        const { access_token, refresh_token } = await login(userName, password);
+
+        if (!refresh_token) {
+          setLoginError("Login Failed.");
+          return;
+        }
+        const user = await getCurrentUser();
+
+        if (!user) {
+          //finish this
+        } else {
+        }
+      } catch (err: any) {
+        setLoginError(err.message);
+      }
     }
   });
 

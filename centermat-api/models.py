@@ -120,11 +120,11 @@ class User(Base):
     date_of_birth: Mapped[datetime | None] = mapped_column(DateTime)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     role_assignments: Mapped[list["UserRoleAssignment"]] = relationship(
-        back_populates="user", cascade="all, delete-orphan"
+        back_populates="user", cascade="all, delete-orphan",passive_deletes=True
     )
     roles: AssociationProxy[list[UserRole]] = association_proxy(
         "role_assignments", "role",
-        creator=lambda r: UserRoleAssignment(role=r),
+        creator=lambda r: UserRoleAssignment(role=r), 
     )
     first_name: Mapped[str] = mapped_column(String(100), nullable=False)
     last_name: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -142,6 +142,9 @@ class User(Base):
     )
     staff_assignments: Mapped[list["TournamentStaff"]] = relationship(back_populates="user")
     fan_follows: Mapped[list["FanFollow"]] = relationship(back_populates="user")
+    refresh_tokens: Mapped[list["RefreshToken"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan", passive_deletes=True
+    )
 
 class PasswordResetToken(Base):
     __tablename__ = "password_reset_tokens"
@@ -157,7 +160,7 @@ class PasswordResetToken(Base):
 class UserRoleAssignment(Base):
     __tablename__ = "user_roles"
 
-    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     role: Mapped[UserRole] = mapped_column(Enum(UserRole), primary_key=True, index=True)
 
     user: Mapped["User"] = relationship(back_populates="role_assignments")
@@ -403,3 +406,17 @@ class Notification(Base):
     # relationships
     tournament: Mapped["Tournament | None"] = relationship(back_populates="notifications")
     match: Mapped["Match | None"] = relationship(back_populates="notifications")
+
+
+
+class RefreshToken(Base):
+    __tablename__ = "refresh_tokens"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=gen_uuid)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    revoked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.utc_timestamp())
+
+    user: Mapped["User"] = relationship(back_populates="refresh_tokens")

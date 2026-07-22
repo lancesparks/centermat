@@ -111,9 +111,10 @@ def upgrade() -> None:
     sa.Column('id', sa.String(length=36), nullable=False),
     sa.Column('tournament_id', sa.String(length=36), nullable=False),
     sa.Column('name', sa.String(length=100), nullable=False),
-    sa.Column('max_weight', sa.Numeric(precision=5, scale=1), nullable=True),
-    sa.Column('min_weight', sa.Numeric(precision=5, scale=1), nullable=True),
-    sa.Column('weight_type', sa.Enum('lbs', 'kg', name='weighttype'), nullable=False),
+    sa.Column('max_weight_lb', sa.Numeric(precision=5, scale=1), nullable=True),
+    sa.Column('min_weight_lb', sa.Numeric(precision=5, scale=1), nullable=True),
+    sa.Column('max_weight_kg', sa.Numeric(precision=5, scale=1), nullable=True),
+    sa.Column('min_weight_kg', sa.Numeric(precision=5, scale=1), nullable=True),
     sa.Column('division', sa.String(length=100), nullable=True),
     sa.ForeignKeyConstraint(['tournament_id'], ['tournaments.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')

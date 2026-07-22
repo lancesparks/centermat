@@ -3,44 +3,39 @@
 import { useForm } from "@tanstack/react-form";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { login, getCurrentUser } from "../../../actions/api";
-import LoginLayout from "../../ui/LoginLayout";
+import { Button, Input, LoginLayout } from "@/app/ui";
+import { useLogin } from "@/hooks"; // Adjust path to where your useLogin hook lives
 import Image from "next/image";
 import Link from "next/link";
-import Button from "../../ui/Button";
-import Input from "../../ui/Input";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState("");
 
   const router = useRouter();
+
+  // Initialize the TanStack Query mutation
+  const { mutateAsync: loginUser, isPending } = useLogin();
+
   const form = useForm({
     defaultValues: {
       userName: "",
       password: ""
     },
-    onSubmit: async ({ value, formApi }) => {
+    onSubmit: async ({ value }) => {
+      setLoginError("");
       const { userName, password } = value;
 
       try {
-        const { access_token, refresh_token } = await login(userName, password);
+        // Trigger the mutation
+        await loginUser({ email: userName, password });
 
-        if (!refresh_token) {
-          setLoginError("Login Failed.");
-          return;
-        }
-        const user = await getCurrentUser();
-
-        console.log(user);
-
-        if (!user) {
-          //finish this
-        } else {
-          router.push("/dashboard");
-        }
+        // Navigate on success — TanStack Query fetches the current user in the background
+        router.push("/dashboard");
       } catch (err: any) {
-        setLoginError(err.message);
+        setLoginError(
+          err.message || "Login failed. Please check your credentials."
+        );
       }
     }
   });
@@ -79,13 +74,12 @@ export default function LoginPage() {
       <form
         className="mt-8 flex flex-col gap-5"
         onSubmit={(e) => {
-          setLoginError("");
           e.preventDefault();
           e.stopPropagation();
           form.handleSubmit();
         }}
       >
-        {/* email */}
+        {/* email / username */}
         <div>
           <form.Field
             name="userName"
@@ -96,7 +90,7 @@ export default function LoginPage() {
             {(field) => (
               <div>
                 <Input
-                  label="username"
+                  label="Username"
                   type="text"
                   placeholder="you@example.com"
                   value={field.state.value}
@@ -161,9 +155,9 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* sign in */}
-        <Button variant="ink" type="submit">
-          Sign In
+        {/* sign in button automatically uses isPending state */}
+        <Button variant="ink" type="submit" disabled={isPending}>
+          {isPending ? "Signing In..." : "Sign In"}
         </Button>
       </form>
 

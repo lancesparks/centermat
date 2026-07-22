@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import ResetPasswordPage from "./reset-password";
-import LoginLayout from "../ui/LoginLayout"; // Adjust path if needed
+import { LoginLayout } from "@/app/ui"; // Adjust path if needed
 
 export default function Page() {
   return (

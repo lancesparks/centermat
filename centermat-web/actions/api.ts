@@ -9,6 +9,34 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 let refreshPromise: Promise<boolean> | null = null;
 
+async function apiFetch(
+  path: string,
+  options: RequestInit = {}
+): Promise<Response> {
+  const doFetch = () =>
+    fetch(`${BASE_URL}${path}`, {
+      ...options,
+      headers: {
+        ...options.headers,
+        Authorization: `Bearer ${getAccessToken() ?? ""}`
+      }
+    });
+
+  let res = await doFetch();
+
+  if (res.status === 401) {
+    // share one in-flight refresh across concurrent callers
+    refreshPromise = refreshPromise ?? refreshTokens();
+    const ok = await refreshPromise;
+    refreshPromise = null;
+
+    if (!ok) throw new Error("SESSION_EXPIRED");
+    res = await doFetch(); // retry once with the new access token
+  }
+
+  return res;
+}
+
 async function refreshTokens(): Promise<boolean> {
   const refresh_token = getRefreshToken();
   if (!refresh_token) return false;
@@ -60,7 +88,6 @@ export async function registerUser(userData: any) {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.log(errorData);
       return {
         success: false,
         error: errorData.detail || "Registration failed on the server."
@@ -73,34 +100,6 @@ export async function registerUser(userData: any) {
     console.error("Server error during registration:", err);
     return { success: false, error: "Something went wrong. Please try again." };
   }
-}
-
-export async function apiFetch(
-  path: string,
-  options: RequestInit = {}
-): Promise<Response> {
-  const doFetch = () =>
-    fetch(`${BASE_URL}${path}`, {
-      ...options,
-      headers: {
-        ...options.headers,
-        Authorization: `Bearer ${getAccessToken() ?? ""}`
-      }
-    });
-
-  let res = await doFetch();
-
-  if (res.status === 401) {
-    // share one in-flight refresh across concurrent callers
-    refreshPromise = refreshPromise ?? refreshTokens();
-    const ok = await refreshPromise;
-    refreshPromise = null;
-
-    if (!ok) throw new Error("SESSION_EXPIRED");
-    res = await doFetch(); // retry once with the new access token
-  }
-
-  return res;
 }
 
 export async function login(email: string, password: string) {

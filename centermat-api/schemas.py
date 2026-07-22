@@ -262,17 +262,21 @@ class TournamentResponse(BaseModel):
 
 class WeightClassCreate(BaseModel):
     name: str
-    max_weight: Optional[float] = None
-    min_weight: Optional[float] = None
-    weight_type: WeightType
+    sport: str
+    max_weight_lb: Optional[float] = None
+    min_weight_lb: Optional[float] = None
+    max_weight_kg: Optional[float] = None
+    min_weight_lg: Optional[float] = None
     division: Optional[str] = None
 
 
 class WeightClassUpdate(BaseModel):
     name: Optional[str] = None
-    max_weight: Optional[float] = None
-    min_weight: Optional[float] = None
-    weight_type: Optional[WeightType] = None
+    sport:  Optional[str] = None
+    max_weight_lb: Optional[float] = None
+    min_weight_lb: Optional[float] = None
+    max_weight_kg: Optional[float] = None
+    min_weight_kg: Optional[float] = None
     division: Optional[str] = None
 
 
@@ -281,7 +285,10 @@ class WeightClassResponse(BaseModel):
     id: str
     tournament_id: str
     name: str
-    max_weight_lbs: Optional[float] = None
+    max_weight_lb: Optional[float] = None
+    min_weight_lb: Optional[float] = None
+    max_weight_kg: Optional[float] = None
+    min_weight_kg: Optional[float] = None
     division: Optional[str] = None
 
     class Config:

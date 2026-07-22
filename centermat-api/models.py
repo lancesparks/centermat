@@ -244,11 +244,11 @@ class WeightClass(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=gen_uuid)
     tournament_id: Mapped[str] = mapped_column(String(36), ForeignKey("tournaments.id", ondelete="CASCADE"), nullable=False)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
-    max_weight: Mapped[Decimal | None] = mapped_column(Numeric(5, 1))
-    min_weight: Mapped[Decimal | None] = mapped_column(Numeric(5, 1))
-    weight_type: Mapped[WeightType] = mapped_column(
-        Enum(WeightType), default=WeightType.lbs, nullable=False
-    )
+    sport: Mapped[str] = mapped_column(String(200), nullable=False)
+    max_weight_lb: Mapped[Decimal | None] = mapped_column(Numeric(5, 1))
+    min_weight_lb: Mapped[Decimal | None] = mapped_column(Numeric(5, 1))
+    max_weight_kg: Mapped[Decimal | None] = mapped_column(Numeric(5, 1))
+    min_weight_kg: Mapped[Decimal | None] = mapped_column(Numeric(5, 1))
     division: Mapped[str | None] = mapped_column(String(100))
 
     # relationships

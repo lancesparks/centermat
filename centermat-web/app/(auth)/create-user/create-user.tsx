@@ -1,15 +1,11 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useForm } from "@tanstack/react-form";
-import LoginLayout from "../../ui/LoginLayout";
 import Image from "next/image";
 import Link from "next/link";
-import Button from "../../ui/Button";
-import Input from "../../ui/Input";
-import Dropdown from "../../ui/Dropdown";
-import { DateOfBirthSelect } from "../../ui/DateOfBirthSelect";
-import { registerUser } from "../../../actions/api";
+import { Button, Dropdown, Input, LoginLayout, DateSelect } from "@/app/ui";
 import { useState } from "react";
+import { useRegister } from "@/hooks";
 
 const ROLES = [
   { label: "Organizer", value: "organizer" },
@@ -22,6 +18,7 @@ const ROLES = [
 export default function CreateUserPage() {
   const router = useRouter();
   const [createError, setCreateError] = useState("");
+  const { mutateAsync: registerUser, isPending } = useRegister();
 
   function handleSetPhoneNumber(value: string) {
     const digits = value.replace(/\D/g, "").slice(0, 10);
@@ -48,13 +45,17 @@ export default function CreateUserPage() {
     onSubmit: async ({ value, formApi }) => {
       const { confirmPassword, ...submissionData } = value;
 
-      const result = await registerUser(submissionData);
+      try {
+        const result = await registerUser(submissionData);
 
-      if (result.success) {
-        formApi.reset();
-        router.push("/login");
-      } else {
-        setCreateError(result.error);
+        if (result.success) {
+          formApi.reset();
+          router.push("/login");
+        } else {
+          setCreateError(result.error);
+        }
+      } catch (e: any) {
+        setCreateError(e.message || "Something went wrong. Please try again.");
       }
     }
   });
@@ -209,7 +210,10 @@ export default function CreateUserPage() {
         >
           {(field) => (
             <div>
-              <DateOfBirthSelect onChange={(e) => field.handleChange(e)} />
+              <DateSelect
+                label="DATE OF BIRTH"
+                onChange={(e) => field.handleChange(e)}
+              />
               {field.state.meta.errors.length > 0 && (
                 <p className="text-red-500 text-sm mt-1">
                   {field.state.meta.errors.join(", ")}
@@ -321,19 +325,9 @@ export default function CreateUserPage() {
 
         {/* Access the form-level pending state */}
 
-        <form.Subscribe
-          selector={(state) => [state.isSubmitting, state.canSubmit]}
-        >
-          {([isSubmitting, canSubmit]) => (
-            <Button
-              variant="ink"
-              type="submit"
-              disabled={isSubmitting || !canSubmit}
-            >
-              {isSubmitting ? "Creating Account..." : "Create Account"}
-            </Button>
-          )}
-        </form.Subscribe>
+        <Button variant="ink" type="submit" disabled={isPending}>
+          {isPending ? "Creating Account..." : "Create Account"}
+        </Button>
       </form>
 
       {/* footer */}

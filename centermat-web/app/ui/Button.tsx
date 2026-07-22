@@ -10,14 +10,16 @@ interface ButtonProps extends React.ComponentPropsWithoutRef<"button"> {
   variant: keyof typeof buttonClasses;
   type?: React.ButtonHTMLAttributes<HTMLButtonElement>["type"];
   onClick?: () => void;
+  classes?: string;
   children?: React.ReactNode;
 }
 
-export default function Button({
+export function Button({
   variant,
   type,
   onClick,
   disabled,
+  classes,
   children
 }: ButtonProps) {
   return (
@@ -26,7 +28,7 @@ export default function Button({
         type={type}
         disabled={disabled}
         onClick={onClick}
-        className={`w-full ${buttonClasses[variant]} font-display font-extrabold uppercase tracking-[0.12em] text-sm py-4 mt-2  transition-colors cursor-pointer `}
+        className={`w-full ${buttonClasses[variant]} font-display font-extrabold uppercase tracking-[0.12em] text-sm py-4 mt-2  transition-colors cursor-pointer ${classes} `}
       >
         {children}
       </button>

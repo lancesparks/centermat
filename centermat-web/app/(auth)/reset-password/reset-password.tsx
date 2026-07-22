@@ -42,7 +42,6 @@ export default function ResetPasswordPage() {
 
       try {
         const result = await resetPassword(token, password);
-        console.log(result);
         if (result.success) {
           setMessage("Password successfully updated!");
         }

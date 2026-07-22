@@ -1,7 +1,10 @@
+"use client";
+
 import "./globals.css";
 
 import localFont from "next/font/local";
 import { DM_Sans } from "next/font/google";
+import { APIProvider } from "@vis.gl/react-google-maps";
 import QueryProvider from "../providers/QueryProvider"; // Adjust path
 
 const bigShoulders = localFont({
@@ -27,7 +30,13 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${bigShoulders.variable} ${sans.variable}`}>
       <body>
-        <QueryProvider>{children}</QueryProvider>
+        <QueryProvider>
+          <APIProvider
+            apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""}
+          >
+            {children}
+          </APIProvider>
+        </QueryProvider>
       </body>
     </html>
   );

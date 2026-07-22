@@ -43,9 +43,10 @@ def create_weight_class(tournament_id: str, user: user_dependency, db: db_depend
     new_weight_class = models.WeightClass(
         tournament_id = tournament.id,
         name = weight_class.name,
-        max_weight = weight_class.max_weight,
-        min_weight = weight_class.min_weight,
-        weight_type = weight_class.weight_type,
+        max_weight_lb = weight_class.max_weight_lb,
+        min_weight_lb = weight_class.min_weight_lb,
+        max_weight_kg = weight_class.max_weight_kg,
+        min_weight_kg = weight_class.min_weight_kg,
         division = weight_class.division
     )
 

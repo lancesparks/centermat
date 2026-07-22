@@ -11,14 +11,16 @@ import {
 interface DropdownProps {
   label?: string;
   placeholder?: string;
-  value: string; // 1. Added to make it a controlled component
-  values: { label: string; value: string | null }[]; // 2. Changed to string only
-  onChange: (value: string | null) => void;
+  containerClasses?: string;
+  value: string;
+  values: { label: string; value: string }[]; // was string | null
+  onChange: (value: string) => void; // was string | null
 }
 
-export default function Dropdown({
+export function Dropdown({
   label,
   placeholder = "Select an option",
+  containerClasses,
   value,
   values,
   onChange
@@ -26,14 +28,14 @@ export default function Dropdown({
   const id = label?.toLowerCase().replace(/\s+/g, "-");
 
   return (
-    <>
+    <div className={containerClasses}>
       {label && (
         <label htmlFor={id} className="cm-label block mb-2">
           {label}
         </label>
       )}
       {/* 3. Bind value and onValueChange to the Select component */}
-      <Select value={value} onValueChange={onChange}>
+      <Select value={value} onValueChange={(v) => onChange(v ?? "")}>
         <SelectTrigger
           id={id}
           className="w-full rounded-none bg-paper border-2 border-ink px-4 py-3.5 text-base focus:outline-none focus:border-gold cursor-pointer !h-[54px]"
@@ -51,6 +53,6 @@ export default function Dropdown({
           </SelectGroup>
         </SelectContent>
       </Select>
-    </>
+    </div>
   );
 }

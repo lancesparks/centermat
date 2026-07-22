@@ -6,7 +6,7 @@ interface LoginLayoutProps {
   children?: React.ReactNode;
 }
 
-export default function LoginLayout({
+export function LoginLayout({
   sidebarHeader,
   sidebarQuote,
   children

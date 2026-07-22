@@ -2,20 +2,25 @@ interface InputProps {
   label?: string;
   type?: React.InputHTMLAttributes<HTMLInputElement>["type"];
   placeholder?: string;
+  classes?: string;
+  containerClasses?: string;
   value: string;
   onChange: (value: string) => void;
 }
 
-export default function Input({
+export function Input({
   label,
   type = "text",
   placeholder,
+  classes,
+  containerClasses,
   value,
   onChange
 }: InputProps) {
   const id = label?.toLowerCase().replace(/\s+/g, "-");
+  const inputClasses = `w-full bg-paper border-2 border-ink px-4 py-3.5 text-base placeholder:text-ink-mute focus:outline-none focus:border-gold ${classes}`;
   return (
-    <div>
+    <div className={containerClasses}>
       {label && (
         <label htmlFor={id} className="cm-label block mb-2">
           {label}
@@ -27,7 +32,7 @@ export default function Input({
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full bg-paper border-2 border-ink px-4 py-3.5 text-base placeholder:text-ink-mute focus:outline-none focus:border-gold"
+        className={inputClasses}
       />
     </div>
   );

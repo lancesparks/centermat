@@ -3,11 +3,9 @@ import { useForm } from "@tanstack/react-form";
 import { useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { resetPassword } from "../../../actions/api";
-import LoginLayout from "../../ui/LoginLayout";
 import Image from "next/image";
 import Link from "next/link";
-import Button from "../../ui/Button";
-import Input from "../../ui/Input";
+import { LoginLayout, Button, Input } from "@/app/ui";
 
 export default function ResetPasswordPage() {
   const searchParams = useSearchParams();

@@ -161,6 +161,7 @@ export async function forgotPassword(email: string) {
     };
   }
 }
+
 export async function getCurrentUser() {
   const refresh_token = getRefreshToken();
   try {

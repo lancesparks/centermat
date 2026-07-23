@@ -1,17 +1,19 @@
 "use client";
+
 import { useForm } from "@tanstack/react-form";
 import { useSearchParams } from "next/navigation";
-import { useState, useEffect } from "react";
-import { resetPassword } from "../../../actions/api";
+import { useState, useEffect, Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { LoginLayout, Button, Input } from "@/app/ui";
+import { Button, Input, LoginLayout } from "@/app/ui";
+import { useResetPassword } from "@/hooks";
 
-export default function ResetPasswordPage() {
+function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
   const [message, setMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const { mutateAsync: resetPassword, isPending } = useResetPassword();
 
   useEffect(() => {
     if (!token) {
@@ -32,18 +34,20 @@ export default function ResetPasswordPage() {
         return;
       }
 
-      // Clear previous messages before starting the new request
       setMessage("");
       setErrorMessage("");
 
       const { password } = value;
 
       try {
-        const result = await resetPassword(token, password);
+        const result = await resetPassword({
+          token: token,
+          newPassword: password
+        });
+
         if (result.success) {
           setMessage("Password successfully updated!");
-        }
-        if (!result.success) {
+        } else {
           setErrorMessage(result.error);
         }
       } catch (e) {
@@ -72,7 +76,9 @@ export default function ResetPasswordPage() {
           RESET PASSWORD
         </h1>
 
-        {message.length > 0 && <p className="font-display mt-1">{message}</p>}
+        {message.length > 0 && (
+          <p className="font-display text-green-600 mt-1">{message}</p>
+        )}
         {errorMessage.length > 0 && (
           <p className="font-display text-red-500 mt-1">{errorMessage}</p>
         )}
@@ -81,85 +87,95 @@ export default function ResetPasswordPage() {
       {/* heavy rule — mobile only */}
       <div className="cm-rule mt-6 lg:hidden" />
 
-      {/* form */}
-      <form
-        className="mt-8 flex flex-col gap-5"
-        onSubmit={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          form.handleSubmit();
-        }}
-      >
-        <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
-          {/* Password */}
-          <form.Field
-            name="password"
-            validators={{
-              onSubmit: ({ value, fieldApi }) => {
-                if (!value) return "Password is required.";
-                // Accessing form-tracked confirmPassword value directly
-                const confirmVal =
-                  fieldApi.form.getFieldValue("confirmPassword");
-                if (value !== confirmVal) return "Passwords do not match.";
-                return null;
-              }
-            }}
-          >
-            {(field) => (
-              <div>
-                <Input
-                  label="Password"
-                  type="password"
-                  placeholder="********"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e)}
-                />
-                {field.state.meta.errors.length > 0 && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {field.state.meta.errors.join(", ")}
-                  </p>
-                )}
-              </div>
-            )}
-          </form.Field>
+      {/* form (Only render if password wasn't successfully updated yet) */}
+      {message.length === 0 ? (
+        <form
+          className="mt-8 flex flex-col gap-5"
+          onSubmit={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            form.handleSubmit();
+          }}
+        >
+          <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+            {/* Password */}
+            <form.Field
+              name="password"
+              validators={{
+                onSubmit: ({ value, fieldApi }) => {
+                  if (!value) return "Password is required.";
+                  const confirmVal =
+                    fieldApi.form.getFieldValue("confirmPassword");
+                  if (value !== confirmVal) return "Passwords do not match.";
+                  return null;
+                }
+              }}
+            >
+              {(field) => (
+                <div>
+                  <Input
+                    label="Password"
+                    type="password"
+                    placeholder="********"
+                    value={field.state.value}
+                    onChange={(val) => field.handleChange(val)}
+                  />
+                  {field.state.meta.errors.length > 0 && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {field.state.meta.errors.join(", ")}
+                    </p>
+                  )}
+                </div>
+              )}
+            </form.Field>
 
-          {/* Confirm Password */}
-          <form.Field
-            name="confirmPassword"
-            validators={{
-              onSubmit: ({ value, fieldApi }) => {
-                if (!value) return "Please confirm your password.";
-                const mainPassword = fieldApi.form.getFieldValue("password");
-                if (value !== mainPassword) return "Passwords do not match.";
-                return null;
-              }
-            }}
+            {/* Confirm Password */}
+            <form.Field
+              name="confirmPassword"
+              validators={{
+                onSubmit: ({ value, fieldApi }) => {
+                  if (!value) return "Please confirm your password.";
+                  const mainPassword = fieldApi.form.getFieldValue("password");
+                  if (value !== mainPassword) return "Passwords do not match.";
+                  return null;
+                }
+              }}
+            >
+              {(field) => (
+                <div>
+                  <Input
+                    label="Confirm Password"
+                    type="password"
+                    placeholder="********"
+                    value={field.state.value}
+                    onChange={(val) => field.handleChange(val)}
+                  />
+                  {field.state.meta.errors.length > 0 && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {field.state.meta.errors.join(", ")}
+                    </p>
+                  )}
+                </div>
+              )}
+            </form.Field>
+          </div>
+
+          <Button variant="ink" type="submit" disabled={isPending || !token}>
+            {isPending ? "Updating..." : "Submit"}
+          </Button>
+        </form>
+      ) : (
+        <div className="mt-8">
+          <Link
+            href="/login"
+            className="font-bold underline underline-offset-4 cursor-pointer"
           >
-            {(field) => (
-              <div>
-                <Input
-                  label="Confirm Password"
-                  type="password"
-                  placeholder="********"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e)}
-                />
-                {field.state.meta.errors.length > 0 && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {field.state.meta.errors.join(", ")}
-                  </p>
-                )}
-              </div>
-            )}
-          </form.Field>
+            Click here to sign in with your new password
+          </Link>
         </div>
+      )}
 
-        <Button variant="ink" type="submit">
-          Submit
-        </Button>
-      </form>
-
-      {/* footer — pushed to bottom on mobile, inline on desktop */}
+      {/* footer */}
       <footer className="mt-auto lg:mt-10 pt-10 lg:pt-0 text-center">
         <p className="text-base">
           Have an account?
@@ -173,5 +189,14 @@ export default function ResetPasswordPage() {
         <p className="cm-eyebrow mt-6 lg:hidden">By Suplay</p>
       </footer>
     </LoginLayout>
+  );
+}
+
+// Wrap in Suspense to satisfy Next.js App Router requirements for useSearchParams
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ResetPasswordForm />
+    </Suspense>
   );
 }

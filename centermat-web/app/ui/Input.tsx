@@ -1,7 +1,10 @@
+import { formatCurrency } from "@/helpers";
+
 interface InputProps {
   label?: string;
   type?: React.InputHTMLAttributes<HTMLInputElement>["type"];
   placeholder?: string;
+  format?: string;
   classes?: string;
   containerClasses?: string;
   value: string;
@@ -12,6 +15,7 @@ export function Input({
   label,
   type = "text",
   placeholder,
+  format,
   classes,
   containerClasses,
   value,
@@ -31,7 +35,16 @@ export function Input({
         type={type}
         placeholder={placeholder}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+          let value = e.target.value;
+          if (format === "currency") {
+            value = parseFloat(value).toLocaleString("en-US", {
+              style: "currency",
+              currency: "USD"
+            });
+          }
+          onChange(value);
+        }}
         className={inputClasses}
       />
     </div>

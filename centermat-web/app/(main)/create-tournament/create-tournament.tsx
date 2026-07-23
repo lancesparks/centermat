@@ -81,6 +81,127 @@ export default function CreateTournament() {
       requireWaiver: false,
       allowRefunds: false,
       invites: [] as Invite[]
+
+      // name: "Seabreeze ",
+      // startDate: "2026-07-04",
+      // endDate: "2026-08-01",
+      // venue:
+      //   "Seabreeze High School, North Oleander Avenue, Daytona Beach, FL, USA",
+      // format: "Bracket",
+      // description: "",
+      // sport: "muay_thai",
+      // ageDivisions: [],
+      // weightClasses: [
+      //   {
+      //     id: "0ccb17d1-d165-4933-bda6-3d406f0d6c68",
+      //     name: "Mini Flyweight",
+      //     maxLb: "105",
+      //     maxKg: "47.6"
+      //   },
+      //   {
+      //     id: "13ce0594-d946-4332-9853-3d8021fe88bd",
+      //     name: "Light Flyweight",
+      //     maxLb: "108",
+      //     maxKg: "49"
+      //   },
+      //   {
+      //     id: "489c696a-b82c-454f-ad6b-25ced5cc7bda",
+      //     name: "Flyweight",
+      //     maxLb: "112",
+      //     maxKg: "50.8"
+      //   },
+      //   {
+      //     id: "c901206f-d6a4-4ba4-b042-bfd73dd122dd",
+      //     name: "Super Flyweight",
+      //     maxLb: "115",
+      //     maxKg: "52.2"
+      //   },
+      //   {
+      //     id: "4959f805-7f91-44f7-8490-af4003d09da4",
+      //     name: "Bantamweight",
+      //     maxLb: "118",
+      //     maxKg: "53.5"
+      //   },
+      //   {
+      //     id: "d99c2018-ac67-45cd-9036-3992b75f3b58",
+      //     name: "Super Bantamweight",
+      //     maxLb: "122",
+      //     maxKg: "55.3"
+      //   },
+      //   {
+      //     id: "85508134-667f-4745-8edd-7307e65e7dc8",
+      //     name: "Featherweight",
+      //     maxLb: "126",
+      //     maxKg: "57.2"
+      //   },
+      //   {
+      //     id: "09366167-3782-4c6f-91c9-50f132ac1064",
+      //     name: "Super Featherweight",
+      //     maxLb: "130",
+      //     maxKg: "59"
+      //   },
+      //   {
+      //     id: "8bc9d650-4f07-4add-b9e8-a40701437162",
+      //     name: "Lightweight",
+      //     maxLb: "135",
+      //     maxKg: "61.2"
+      //   },
+      //   {
+      //     id: "a3a6c3f9-1d4c-42e0-af8c-95b83f320d3f",
+      //     name: "Super Lightweight",
+      //     maxLb: "140",
+      //     maxKg: "63.5"
+      //   },
+      //   {
+      //     id: "b78318a0-b345-4c60-a5f5-b83733efc544",
+      //     name: "Welterweight",
+      //     maxLb: "147",
+      //     maxKg: "66.7"
+      //   },
+      //   {
+      //     id: "b21c5803-6ece-446e-88d8-887ae802ef12",
+      //     name: "Super Welterweight",
+      //     maxLb: "154",
+      //     maxKg: "69.9"
+      //   },
+      //   {
+      //     id: "46f4d01e-cd3c-4ed7-88b9-53c5eff4026d",
+      //     name: "Middleweight",
+      //     maxLb: "160",
+      //     maxKg: "72.6"
+      //   },
+      //   {
+      //     id: "2b52af67-7f18-4a5a-b289-c4f92fe95702",
+      //     name: "Super Middleweight",
+      //     maxLb: "168",
+      //     maxKg: "76.2"
+      //   },
+      //   {
+      //     id: "80da10f2-7678-4b88-b7c5-943aa2549cf4",
+      //     name: "Light Heavyweight",
+      //     maxLb: "175",
+      //     maxKg: "79.4"
+      //   },
+      //   {
+      //     id: "8df682e4-70f5-4f5f-ad2f-335ea4977f5c",
+      //     name: "Cruiserweight",
+      //     maxLb: "200",
+      //     maxKg: "90.7"
+      //   },
+      //   {
+      //     id: "1858048e-de65-4e00-a136-9287ad76c72b",
+      //     name: "Heavyweight",
+      //     maxLb: "",
+      //     maxKg: ""
+      //   }
+      // ],
+      // registrationOpens: "2026-07-12",
+      // registrationCloses: "2026-07-18",
+      // signupFee: "45",
+      // teamFee: "",
+      // requireWaiver: true,
+      // allowRefunds: true,
+      // invites: []
     },
     onSubmit: async ({ value }) => {
       console.log(value); // TODO: POST to /tournament/ then children
@@ -524,11 +645,12 @@ export default function CreateTournament() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <form.Field name="feePerAthlete">
+                <form.Field name="signupFee">
                   {(f) => (
-                    <Labeled label="Fee Per Athlete">
+                    <Labeled label="signup fee">
                       <Input
                         placeholder="$45"
+                        format={"currency"}
                         value={f.state.value}
                         onChange={f.handleChange}
                       ></Input>

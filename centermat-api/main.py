@@ -8,7 +8,12 @@ from routers.tournament import router as tournament_router
 from routers.match import router as match_router
 from routers.registration import router as registration_router
 from routers.weight_class import router as weight_class_router
+import logging
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
 app = FastAPI()
 
 app.add_middleware(

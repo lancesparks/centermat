@@ -217,17 +217,15 @@ def refresh(payload: schemas.RefreshRequest, db: db_dependency):
 
 # 1. Body(..., embed=True) or Pydantic schemas allow Next.js to pass JSON natively
 @router.post("/forgot-password")
-def forgot_password(
-    payload: schemas.ForgotPasswordRequest, # Changed to use schemas for body extraction
+async def forgot_password(
+    payload: schemas.ForgotPasswordRequest,
     db: db_dependency, 
     background_tasks: BackgroundTasks
 ):
-    # Lookup user using the schema object
     user = get_user_by_email(db, payload.email)
-    
     # Anti-enumeration guard
     if not user:
-        return {"message": "Password change request sent, check your email. "}
+        return {"message": "Password change request sent, check your email."}
     
     # Remove existing active reset keys
     db.query(models.PasswordResetToken).filter(models.PasswordResetToken.user_id == user.id).delete()
@@ -243,11 +241,12 @@ def forgot_password(
     db.add(db_token)
     db.commit()
     
-    # Make sure this domain points to your local or staging deployment
-    reset_link = f"https://http://localhost:3000/reset-password?token={raw_token}"
-    background_tasks.add_task(send_reset_password_email, email=user.email, reset_link=reset_link)
+    base_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    reset_link = f"{base_url}/reset-password?token={raw_token}"
     
-    return {"message": "Password change request sent, check your email. "}
+    send_reset_password_email(email=user.email, reset_link=reset_link)
+    
+    return {"message": "Password change request sent, check your email."}
 
 
 @router.post("/reset-password")

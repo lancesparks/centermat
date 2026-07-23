@@ -12,7 +12,6 @@ SMTP_USERNAME = "lancehsparks@gmail.com"
 SMTP_PASSWORD = "qryeazhcbkbampyb"
 
 def send_reset_password_email(email: str, reset_link: str):
-    # Create email envelope
     msg = MIMEMultipart('alternative')
     msg['Subject'] = "Reset your Centermat password"
     msg['From'] = f"Centermat <{SMTP_USERNAME}>"
@@ -32,10 +31,10 @@ def send_reset_password_email(email: str, reset_link: str):
     msg.attach(MIMEText(html_content, 'html'))
 
     try:
-        # Establish a secure connection to the SMTP server
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.starttls() # Encrypt the connection
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=10) as server:
+            server.starttls()
             server.login(SMTP_USERNAME, SMTP_PASSWORD)
             server.sendmail(SMTP_USERNAME, email, msg.as_string())
+            logger.info(f"Successfully sent reset email to {email}")
     except Exception as e:
-        logger.error(f"Failed to send SMTP reset email to {email}: {str(e)}")
+        logger.exception(f"Failed to send SMTP reset email to {email}: {str(e)}")
